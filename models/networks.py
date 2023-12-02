@@ -134,21 +134,20 @@ class MeshConvNet(nn.Module):
         for i, ki in enumerate(self.k[:-1]):
             setattr(self, 'conv{}'.format(i), MResConv(ki, self.k[i + 1], nresblocks))
             setattr(self, 'norm{}'.format(i), norm_layer(**norm_args[i]))
-            setattr(self, 'pool{}'.format(i), MeshPool(self.res[i + 1]))
+            # setattr(self, 'pool{}'.format(i), MeshPool(self.res[i + 1]))
 
-
-        self.gp = torch.nn.AvgPool1d(self.res[-1])
+        self.gp = torch.nn.AvgPool1d(750)
         # self.gp = torch.nn.MaxPool1d(self.res[-1])
         self.fc1 = nn.Linear(self.k[-1], fc_n)
         self.fc2 = nn.Linear(fc_n, nclasses)
 
     def forward(self, x, mesh):
-
         for i in range(len(self.k) - 1):
             x = getattr(self, 'conv{}'.format(i))(x, mesh)
             x = F.relu(getattr(self, 'norm{}'.format(i))(x))
-            x = getattr(self, 'pool{}'.format(i))(x, mesh)
+            # x = getattr(self, 'pool{}'.format(i))(x, mesh)
 
+        x = x.squeeze()
         x = self.gp(x)
         x = x.view(-1, self.k[-1])
 
@@ -211,8 +210,8 @@ class DownConv(nn.Module):
         for _ in range(blocks + 1):
             self.bn.append(nn.InstanceNorm2d(out_channels))
             self.bn = nn.ModuleList(self.bn)
-        if pool:
-            self.pool = MeshPool(pool)
+        # if pool:
+        #     self.pool = MeshPool(pool)
 
     def __call__(self, x):
         return self.forward(x)
@@ -260,8 +259,8 @@ class UpConv(nn.Module):
             for _ in range(blocks + 1):
                 self.bn.append(nn.InstanceNorm2d(out_channels))
             self.bn = nn.ModuleList(self.bn)
-        if unroll:
-            self.unroll = MeshUnpool(unroll)
+        # if unroll:
+        #     self.unroll = MeshUnpool(unroll)
 
     def __call__(self, x, from_down=None):
         return self.forward(x, from_down)
